@@ -1,0 +1,542 @@
+{
+  "name": "Payment-Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "id": "522d8114-fefd-47d7-8ea2-28a933ceb3fe",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY",
+          "mode": "list",
+          "cachedResultName": "data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 238047372,
+          "mode": "list",
+          "cachedResultName": "payment_reminders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY/edit#gid=238047372"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        96
+      ],
+      "id": "9d386994-9e42-4178-8b53-fdd6e8b04b01",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "C8QKLfFoLOB0I6wJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8abee6a9-2c57-44a8-82e1-81b8c3f967ca",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "fd8f20e1-9c9e-43fe-a402-d7eedf01b9d9",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Overdue",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        96
+      ],
+      "id": "f535162f-947b-4b14-8ee6-ae72502e8349",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Payment Reminder</title>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      margin: 0;\n      padding: 0;\n    }\n    .container {\n      background-color: #ffffff;\n      padding: 40px;\n      border-radius: 8px;\n    }\n    h1 {\n      text-align: center;\n      font-size: 20px;\n      font-weight: bold;\n      margin-bottom: 40px;\n    }\n    .field {\n      font-size: 12px;\n      text-align: left;\n      margin: 8px 0;\n    }\n    .footer {\n      position: absolute;\n      bottom: 20px;\n      width: 100%;\n      text-align: left;\n      font-size: 10px;\n      font-style: italic;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <h1>Payment Reminder</h1>\n\n    <div class=\"field\">To: {{ $json['Client Name'] }}</div>\n    <div class=\"field\">Service/Item: {{ $json['Service/Item'] }}</div>\n    <div class=\"field\">Amount Due: {{ $json.Amount }}</div>\n    <div class=\"field\">Due Date: {{ $json['Due Date'] }}</div>\n\n    <div class=\"footer\">Turbo Tech</div>\n  </div>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "f87e7b83-853b-4694-bb63-d49a7b048319",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "sk_98dd14d5549085b3e415888d4e13a71f7ce5d935"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source\": {{ JSON.stringify($json.html) }},\n  \"landscape\": false,\n  \"use_print\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "8f787b47-7bb4-4961-9b9e-f3dd54479376",
+      "name": "HTTP Request",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-flash-lite-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-flash-lite-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are writing a short, professional payment reminder email on behalf of \"Turbo Tech\" — a small business reaching out to a client about a pending payment.\n\nClient details:\n- Name: {{ $('Filter').item.json[\"Client Name\"] }}\n- Service/Item: {{ $('Filter').item.json[\"Service/Item\"] }}\n- Amount Due: {{ $('Filter').item.json.Amount }}\n- Due Date: {{ $('Filter').item.json[\"Due Date\"] }}\n\nWrite a friendly but professional email reminding them about this payment. Keep it short (3-4 sentences), polite, and include their name and the amount/due date naturally in the message. Do not include a subject line — just the email body. Sign off as \"Turbo Tech\". If the deadline is passed, be a little harsh."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        32
+      ],
+      "id": "fd750af9-448b-4932-9ec7-259c313d32ca",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ai0yW4u5GnRhKa7j",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Filter').item.json.Contact }}",
+        "subject": "Payment Reminder",
+        "emailType": "text",
+        "message": "={{ $json.content.parts[0].text }} ",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "c66b8456-3158-47f1-8bbc-77bdffd49122",
+      "name": "Send a message",
+      "webhookId": "fea2444e-2107-4493-a299-4317ef3f6bb7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eFSoUOxshNbhzcaA",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY",
+          "mode": "list",
+          "cachedResultName": "data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 238047372,
+          "mode": "list",
+          "cachedResultName": "payment_reminders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XWC8EESgbQB7xIoB_123QDt4IdpFGCsqw6UxbjdmIWY/edit#gid=238047372"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Reminded",
+            "Client Name": "={{ $('Filter').item.json['Client Name'] }}"
+          },
+          "matchingColumns": [
+            "Client Name"
+          ],
+          "schema": [
+            {
+              "id": "Client Name",
+              "displayName": "Client Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact",
+              "displayName": "Contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Contact Type",
+              "displayName": "Contact Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Service/Item",
+              "displayName": "Service/Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Due Date",
+              "displayName": "Due Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2144,
+        96
+      ],
+      "id": "b8c19482-141e-48d7-90f9-0d25914e1177",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "C8QKLfFoLOB0I6wJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1472,
+        96
+      ],
+      "id": "78736324-f885-46b5-8190-41e2f95fa21f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "from": "+14155238886",
+        "to": "={{ $('Filter').item.json.Contact }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.content.parts[0].text }} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        192
+      ],
+      "id": "658f2f50-7a48-44cb-90de-f92dc7a3ed62",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "credentials": {
+        "twilioApi": {
+          "id": "1e5War4wWryBZWqs",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9fb9a924-a829-4976-aaa0-96cd25d9bd44",
+              "leftValue": "={{ $('Filter').item.json['Contact Type'] }}",
+              "rightValue": "Email",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1696,
+        96
+      ],
+      "id": "43d630b6-6064-4b58-9c1e-3a7ed7a3fd28",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an SMS/MMS/WhatsApp message": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "e4f2145a-7dbe-4e3a-8015-4972e6f87364",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "89d2531960f6b5b4b623e989b33f63689549e346f8e0d4e8d03701a9657cb6be"
+  },
+  "nodeGroups": [],
+  "id": "3HfB89K9kvUZiBrG",
+  "tags": []
+}
